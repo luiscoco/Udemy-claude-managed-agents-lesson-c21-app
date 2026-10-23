@@ -42,29 +42,104 @@ CLAUDE_MANAGED_ENVIRONMENT_ID=your_environment_id
 PORT=3021
 ```
 
-## How the application was developed
+## How the app was build
 
-The browser collects inputs; the Node host validates requests; the lesson implementation produces observable evidence. The architecture page walks through the real source with numbered steps, prerequisite configuration, source filenames and code excerpts.
+### 1. Validate a proposal in integer cents
 
-### Lesson implementation
+The host accepts only the seeded eligible order, a whole-cent amount within its cap and a bounded nonempty reason. A model cannot set its own refundable limit.
 
-[src/lesson.ts](https://github.com/luiscoco/Udemy-claude-managed-agents-lesson-c21-app/blob/main/src/lesson.ts)
+Source: [src/lesson.ts](src/lesson.ts#L13) · selected statements
 
 ```typescript
-  async run(input) {
+const amount = number(input, "amountCents"),
+  reason = text(input, "reason").trim();
 
-const amount=number(input,"amountCents"), reason=text(input,"reason").trim();
-if(text(input,"orderId")!=="ORD-1001"||!Number.isSafeInteger(amount)||amount<1||amount>2500||!reason||reason.length>200)return report("rejected","Order eligibility, cents, or reason is invalid",{proposalCount:0},["Validate exact tool schema","Load the owned damaged order","Check refundable cents"]);
-const proposal={orderId:"ORD-1001",amountCents:amount,reason,status:"PENDING"};
-const fingerprint=hash(JSON.stringify(proposal));
-if(number(input,"replayAmountCents")!==amount)return report("conflict","The same action key was replayed with different proposal content",{proposalCount:1,fingerprint},["Insert the pending proposal once","Reject a conflicting replay"]);
-return report("passed","Returned the same pending proposal for an identical replay",{...proposal,proposalCount:1,fingerprint,paymentIssued:false},["Reserve a stable host action key","Hash the proposal","Deduplicate identical requests","Require a separate authorized refund operation"]);
-
-  }
-};
+if (
+  text(input, "orderId") !== "ORD-1001" ||
+  !Number.isSafeInteger(amount) ||
+  amount < 1 ||
+  amount > 2500 ||
+  !reason ||
+  reason.length > 200
+)
+  return report(
+    "rejected",
+    "Order eligibility, cents, or reason is invalid",
+    { proposalCount: 0 },
+    [
+      "Validate exact tool schema",
+      "Load the owned damaged order",
+      "Check refundable cents",
+    ],
+  );
 ```
 
-Read the architecture page for the remaining source excerpts and explanations, including input handling and optional provider behavior. The diagram describes this application, rather than implying that an external integration has been implemented.
+### 2. Detect a conflicting replay
+
+The pending proposal is fingerprinted. Replaying the same action with a different amount produces conflict instead of a second proposal.
+
+Source: [src/lesson.ts](src/lesson.ts#L15) · selected statements
+
+```typescript
+const proposal = {
+  orderId: "ORD-1001",
+  amountCents: amount,
+  reason,
+  status: "PENDING",
+};
+
+const fingerprint = hash(JSON.stringify(proposal));
+
+if (number(input, "replayAmountCents") !== amount)
+  return report(
+    "conflict",
+    "The same action key was replayed with different proposal content",
+    { proposalCount: 1, fingerprint },
+    ["Insert the pending proposal once", "Reject a conflicting replay"],
+  );
+```
+
+### 3. Return a proposal without issuing payment
+
+An identical replay retains one pending proposal. paymentIssued is false: financial execution would require a separate authorized operation, and this sample has no persistent payment ledger.
+
+Source: [src/lesson.ts](src/lesson.ts#L18)
+
+```typescript
+return report(
+  "passed",
+  "Returned the same pending proposal for an identical replay",
+  { ...proposal, proposalCount: 1, fingerprint, paymentIssued: false },
+  [
+    "Reserve a stable host action key",
+    "Hash the proposal",
+    "Deduplicate identical requests",
+    "Require a separate authorized refund operation",
+  ],
+);
+```
+
+### Check your understanding
+
+Run **Create a pending proposal** in the application. Compare the result with these scenario expectations:
+
+```json
+{
+  "input": {
+    "orderId": "ORD-1001",
+    "amountCents": 1999,
+    "reason": "Damaged item",
+    "replayAmountCents": 1999
+  },
+  "expectedOutcome": "passed",
+  "checkEvidence": {
+    "status": "PENDING",
+    "proposalCount": 1
+  }
+}
+```
+
+Then try **Detect conflicting replay**. Its expected outcome is `conflict`; identify the condition or evidence field that explains the difference.
 
 ## Validation
 
