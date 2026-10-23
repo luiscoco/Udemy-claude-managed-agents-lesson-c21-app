@@ -2,16 +2,6 @@
 
 Creates a local refund proposal and checks replay fingerprints. No payment operation exists in the application. Each run starts from a fresh local seed. The run journal stores results, not production workflow state.
 
-## Student pages
-
-- [What you will learn](https://github.com/luiscoco/Udemy-claude-managed-agents-lesson-c21-app/blob/main/public/guide.html#learning)
-- [How to run this application](https://github.com/luiscoco/Udemy-claude-managed-agents-lesson-c21-app/blob/main/public/guide.html#run-guide)
-- [Architecture, UML sequence diagram and code walkthrough](https://github.com/luiscoco/Udemy-claude-managed-agents-lesson-c21-app/blob/main/public/architecture.html)
-- [Application lab source](https://github.com/luiscoco/Udemy-claude-managed-agents-lesson-c21-app/blob/main/public/index.html)
-- [Sequence diagram](https://github.com/luiscoco/Udemy-claude-managed-agents-lesson-c21-app/blob/main/public/architecture.svg)
-
-These GitHub links open source files. Start the Node application to use the rendered pages and navigation buttons. GitHub Pages cannot run this application's backend.
-
 ## Concepts students will learn
 
 - Precise tool descriptions and integer cents
