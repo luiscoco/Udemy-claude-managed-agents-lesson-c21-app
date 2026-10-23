@@ -1,0 +1,29 @@
+{
+  "source": "live-provider-commentary",
+  "sessionId": "sesn_01Mv5sRDzFrg72GXAeXiZWei",
+  "answer": "**Experiment Summary**\n\nThis local teaching experiment demonstrates **idempotent proposal handling**: when an identical refund request (same order, amount, and reason) is replayed, the system returns the existing pending proposal rather than creating a duplicate. It illustrates four design steps \u2014 stable action keys, proposal hashing, deduplication, and separating the proposal from the authorized payment action. The \"passed\" outcome confirms that `proposalCount` stayed at 1 and `paymentIssued` remained false, showing the deduplication boundary held correctly.",
+  "stopReason": "end_turn",
+  "eventTypes": [
+    "session.status_running",
+    "session.thread_status_running",
+    "user.message",
+    "span.model_request_start",
+    "agent.thinking",
+    "agent.message",
+    "span.model_request_end",
+    "session.thread_status_idle",
+    "session.usage",
+    "session.status_idle"
+  ],
+  "requestUsage": [
+    {
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "input_tokens": 654,
+      "output_tokens": 152,
+      "speed": "standard"
+    }
+  ],
+  "experimentHash": "94512621f00b82f8cdfefcdd3248eac5818631992a6c30a7ac5d97bf1e6f3d01",
+  "scope": "A real text-only model response about the local experiment. External integrations and the experiment's correctness are not certified by this response."
+}

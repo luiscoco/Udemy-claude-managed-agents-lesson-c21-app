@@ -1,0 +1,44 @@
+import Anthropic from "@anthropic-ai/sdk";
+import { z } from "zod";
+import { createHash } from "node:crypto";
+export const RefundInput = z.strictObject({
+  orderId: z.string().regex(/^ORD-[0-9]{4}$/),
+  amountCents: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER),
+  reason: z.string().trim().min(1).max(200)
+});
+export const refundTool = { type: "custom" as const, name: "propose_refund",
+  description: "Propose a refund for a damaged order owned by the current customer. " +
+    "amountCents is integer USD cents (1999 = $19.99). " +
+    "Creates a PENDING proposal; a separate authorized reviewer issues any refund.",
+  input_schema: { ...z.toJSONSchema(RefundInput), type: "object" as const } };
+export async function createSupportAgent(client: Anthropic, modelId: string) {
+  return client.beta.agents.create({ name: "Acme Support Desk", model: modelId,
+    system: "Help with damaged orders. Refund proposals do not issue payments.",
+    tools: [refundTool], mcp_servers: [], skills: [], multiagent: null
+  }, { maxRetries: 0, timeout: 10000 });
+}
+export type Proposal = { orderId: string; amountCents: number; reason: string; status: "PENDING" };
+type Context = { customerId: string; actionKey: string };
+type Repository = {
+  ownedOrder: (customerId: string, orderId: string) => Promise<{ damaged: boolean; refundableCents: number } | null>;
+  // Transactionally inserts a pending proposal, returns existing identical result,
+  // or rejects a conflicting fingerprint. No payment/ledger operation exists here.
+  putPendingOnce: (owner: string, actionKey: string, fingerprint: string, proposal: Proposal) => Promise<Proposal>;
+};
+export async function proposeRefund(input: unknown, context: Context, repo: Repository) {
+  const parsed = RefundInput.safeParse(input);
+  if (!parsed.success) return { isError: true, text: "Use orderId ORD-1234, positive integer USD cents, and a 1–200 character reason; no extra fields." };
+  if (!context.customerId || !context.actionKey) return { isError: true, text: "Authenticated customer and stable host action key required." };
+  const p = parsed.data;
+  const order = await repo.ownedOrder(context.customerId, p.orderId);
+  if (!order || !order.damaged || p.amountCents > order.refundableCents)
+    return { isError: true, text: "Order is not eligible or requested cents exceed the available amount. No proposal created." };
+  const proposal: Proposal = { ...p, status: "PENDING" };
+  const fingerprint = createHash("sha256").update(JSON.stringify(proposal)).digest("hex");
+  const saved = await repo.putPendingOnce(context.customerId, context.actionKey, fingerprint, proposal);
+  return { isError: false, text: JSON.stringify(saved) };
+}
+// context is trusted host state, never model-selected identity. Caller authorizes access.
+// Production repository must validate eligibility atomically with insertion when state can change.
+// sevt_ is result correlation, not this host-owned stable business action key.
+// No provider calls run on import; this example cannot issue a refund.
